@@ -1,0 +1,47 @@
+dtest - Testing D modules
+=========================
+
+Consult its [documentation](http://jkm.github.com/dtest/dtest.html) for more
+information.
+
+Configure and Build
+===================
+
+Don't forget to update the submodules if you haven't cloned recursively.
+
+    $ git submodule init; git submodule update;
+
+Use [premake4](https://bitbucket.org/goughy/premake-dev-d/) to configure dtest.
+
+    $ premake4 gmake
+	$ make
+
+Testing
+=======
+
+Testing dtest using dtest itself.
+
+	$ make dtest config=tests
+
+Cleaning
+========
+
+Clean created binaries
+
+	$ make clean
+
+Clean all created files
+
+	$ premake4 clean
+
+Issues
+======
+
+Check for [issues](https://github.com/jkm/dtest/issues) on github.
+Please report any issues you encounter.
+
+Licence
+=======
+
+This software is released under the [Boost License
+1.0](http://www.boost.org/LICENSE_1_0.txt).
