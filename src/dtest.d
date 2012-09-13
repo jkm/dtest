@@ -395,7 +395,7 @@ int main(string[] args)
 	return 0;
 }
 
-enum NOT_IMPLEMENTED = "Not implemented for your OS.";
+enum NOT_IMPLEMENTED = "Not implemented for your OS. Please report.";
 
 AssertError[] failures;
 Throwable[] errors;
