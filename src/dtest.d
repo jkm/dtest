@@ -114,8 +114,14 @@ body
 		sw.start();
 		m.unitTest()();
 	}
-	catch (AssertError e) {}
-	catch (Throwable e) {}
+	catch (AssertError e)
+	{
+		failures ~= e;
+	}
+	catch (Throwable e)
+	{
+		errors ~= e;
+	}
 	finally
 	{
 		sw.stop();
@@ -414,7 +420,6 @@ version(Posix)
 		// if it reaches here pass it on
 		if (e !is null) __real__d_throwc(h);
 
-		errors ~= t;
 		if (_flags.breakpoint == Flags.Break.throwables ||
 		    _flags.breakpoint == Flags.Break.both)
 		{
@@ -424,13 +429,13 @@ version(Posix)
 
 		if (_flags.abort == Flags.Abort.throwables || _flags.abort == Flags.Abort.both)
 			__real__d_throwc(h);
+		else
+			errors ~= t;
 	}
 }
 
 void myAssertHandler(string file, size_t line, string msg = null)
 {
-	failures ~= new AssertError(msg, file, line);
-
 	if (_flags.breakpoint == Flags.Break.asserts ||
 		_flags.breakpoint == Flags.Break.both)
 	{
@@ -438,8 +443,11 @@ void myAssertHandler(string file, size_t line, string msg = null)
 		return;
 	}
 
+	auto e = new AssertError(msg, file, line);
 	if (_flags.abort == Flags.Abort.asserts || _flags.abort == Flags.Abort.both)
-		throw failures[0];
+		throw e;
+	else
+		failures ~= e;
 }
 
 /// true iff break was performed.
