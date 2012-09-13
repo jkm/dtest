@@ -94,31 +94,7 @@ auto testModules(ModuleInfo*[] modules)
 	return modules.map!executeUnittests();
 }
 
-/// Test Result
-struct TestResult
-{
-	import core.time;
-	ModuleInfo* moduleInfo;
-	/// all (assert) failures
-	AssertError[] failures;
-	/// all other errors (like unhandled exceptions)
-	Throwable[] errors;
-	TickDuration executionTime;
-
-	this(ModuleInfo* m) nothrow
-	in
-	{
-		assert(m != null);
-	}
-	body
-	{
-		moduleInfo = m;
-	}
-
-	@property
-	bool failed() nothrow pure { return !failures.empty || !errors.empty; }
-}
-
+/// Execute unittests for given module.
 TestResult executeUnittests(ModuleInfo* m)
 in
 {
@@ -149,6 +125,35 @@ body
 	res.executionTime = sw.peek();
 
 	return res;
+}
+
+/// Stores the test results for a single module.
+struct TestResult
+{
+	import core.time;
+	/// ModuleInfo of the tested module
+	ModuleInfo* moduleInfo;
+	/// all (assert) failures
+	AssertError[] failures;
+	/// all other errors (like unhandled exceptions)
+	Throwable[] errors;
+	/// duration to execute the tests
+	TickDuration executionTime;
+
+	/// Constructs an empty TestResult from given ModuleInfo
+	this(ModuleInfo* m) nothrow
+	in
+	{
+		assert(m != null);
+	}
+	body
+	{
+		moduleInfo = m;
+	}
+
+	/// Returns: true, iff there are failures or errors.
+	@property
+	bool failed() nothrow pure { return !failures.empty || !errors.empty; }
 }
 
 /// A Formatter formats TestResult. That is, it converts the TestResults for
