@@ -565,12 +565,12 @@ struct Flags
 		        "  --shuffle                           Random shuffle the execution order for each run.\n"
 		        "  --seed=value                        Seed used for random the shuffle. Defaults to an unpredictable seed.\n"
 		        "  --backtrace                         Add backtrace to console output.\n"
+		        "  --time                              Print running time per module.\n"
+		        "  --output=xml[:file|:directory]      Output results in XML to given file/directory.\n"
 		        "  --abort=", to!string(map!(to!string)([EnumMembers!Abort]).joiner("|")),
 		        "  Abort executing a module. Defaults to ", to!string(Abort.init) , ".\n"
-		        "  --output=xml[:file|:directory]      Output results in XML to given file/directory.\n"
 		        "  --break=", to!string(map!(to!string)([EnumMembers!Break]).joiner("|")),
 		        "  Break when executing a module. Defaults to ", to!string(Break.init), ".\n"
-		        "  --time                              Print running time per module.\n"
 		        "  --color                             Use colored output. Defaults to automatic.\n"
 		        "  --quiet                             Quiet. No output to console.\n"
 		        "  --version                           Print the version.\n"
