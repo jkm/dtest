@@ -8,6 +8,9 @@ solution "dtest"
 	platforms      { "Native", "x32", "x64" }
 	files          { "src/dtest.d" }
 
+	configuration "linux"
+		linkoptions    { "-L--wrap=_d_throwc" }
+
 	configuration "*Optimize*"
 		flags          { "Optimize" }
 		buildoptions   { "-noboundscheck", "-inline" }

@@ -39,6 +39,10 @@
  * E.g. this output for dtest is available at
  * $(LINK_TEXT https://buildhive.cloudbees.com/job/jkm/job/$(PROJECTNAME)/lastCompletedBuild/testReport/history/, buildhive).
  *
+ * When using GNU ld for linking then aborting/breaking on any Throwable is
+ * configurable. On Windows aborting/breaking can only be configured for
+ * asserts.
+ *
  * $(B This module is written such that is should work on Windows but has been
  * only compiled and tested on Linux. Please report any issue while trying it
  * out.)
@@ -95,7 +99,10 @@ struct TestResult
 {
 	import core.time;
 	ModuleInfo* moduleInfo;
-	Throwable[] throwables;
+	/// all (assert) failures
+	AssertError[] failures;
+	/// all other errors (like unhandled exceptions)
+	Throwable[] errors;
 	TickDuration executionTime;
 
 	this(ModuleInfo* m) nothrow
@@ -109,7 +116,7 @@ struct TestResult
 	}
 
 	@property
-	bool failed() nothrow pure { return throwables.length != 0; }
+	bool failed() nothrow pure { return !failures.empty || !errors.empty; }
 }
 
 TestResult executeUnittests(ModuleInfo* m)
@@ -123,7 +130,8 @@ body
 	TestResult res = TestResult(m);
 	import std.datetime;
 	StopWatch sw;
-	thrown = [];
+	failures = [];
+	errors = [];
 
 	try
 	{
@@ -131,11 +139,13 @@ body
 		m.unitTest()();
 	}
 	catch (AssertError e) {}
+	catch (Throwable e) {}
 	finally
 	{
 		sw.stop();
 	}
-	res.throwables ~= thrown;
+	res.failures ~= failures;
+	res.errors ~= errors;
 	res.executionTime = sw.peek();
 
 	return res;
@@ -171,7 +181,7 @@ void consoleFormatter(TestResult[] results)
 				console.formattedWrite(" (took %s ms)", executionTime.msecs);
 			console.formattedWrite("\n");
 
-			foreach (t; throwables)
+			foreach (t; chain(failures, errors))
 				console.formattedWrite(formatThrowable(t));
 		}
 	}
@@ -218,8 +228,8 @@ void xmlFormatter(TestResult[] results)
 	b.tag.attr["timestamp"] = time.toISOExtString();
 	b.tag.attr["hostname"] = Socket.hostName();
 	b.tag.attr["tests"] = to!string(results.length);
-	b.tag.attr["failures"] = to!string(results.count!((m) => m.failed)());
-	b.tag.attr["errors"] = "0";
+	b.tag.attr["failures"] = to!string(results.count!((r) => !r.failures.empty)());
+	b.tag.attr["errors"] = to!string(results.count!((r) => !r.errors.empty)());
 	b.tag.attr["time"] = to!string(reduce!((a, b) => a + b.executionTime)
 	                                 (typeof(TestResult.executionTime).init, results).msecs);
 
@@ -237,10 +247,10 @@ void xmlFormatter(TestResult[] results)
 			e.tag.attr["classname"] = "";
 			e.tag.attr["name"] = moduleInfo.name;
 			e.tag.attr["time"] = to!string(executionTime.msecs);
-			foreach (t; throwables)
-			{
+			foreach (t; failures)
 				e ~= new Element("failure", formatThrowable(t));
-			}
+			foreach (t; errors)
+				e ~= new Element("error", formatThrowable(t));
 		}
 	}
 	a.pretty(4).joiner("\n").copy(File(_flags.output, "w").lockingTextWriter());
@@ -382,28 +392,66 @@ int main(string[] args)
 
 enum NOT_IMPLEMENTED = "Not implemented for your OS.";
 
-Throwable[] thrown;
+AssertError[] failures;
+Throwable[] errors;
+
+version(Posix)
+{
+	// wrap throwing function
+	extern extern(C) void __real__d_throwc(Object* h);
+	extern(C) void __wrap__d_throwc(Object* h)
+	{
+		auto t = cast(Throwable) h;
+		assert(t !is null);
+
+		auto e = cast(AssertError) t;
+		// decision for asserts was already made
+		// if it reaches here pass it on
+		if (e !is null) __real__d_throwc(h);
+
+		errors ~= t;
+		if (_flags.breakpoint == Flags.Break.throwables ||
+		    _flags.breakpoint == Flags.Break.both)
+		{
+			debugBreak();
+			return;
+		}
+
+		if (_flags.abort == Flags.Abort.throwables || _flags.abort == Flags.Abort.both)
+			__real__d_throwc(h);
+	}
+}
+
 void myAssertHandler(string file, size_t line, string msg = null)
 {
-	if (_flags.breakpoint)
-	{
-		version(Posix)
-		{
-			import core.stdc.signal;
-			import core.sys.posix.signal;
-			raise(SIGTRAP);
-		}
-		else version(Windows)
-		{
-			DebugBreak();
-		}
-		else assert(0);
+	failures ~= new AssertError(msg, file, line);
 
+	if (_flags.breakpoint == Flags.Break.asserts ||
+		_flags.breakpoint == Flags.Break.both)
+	{
+		debugBreak();
 		return;
 	}
 
-	thrown ~= new AssertError(msg, file, line);
-	if (!_flags.noAbort) throw thrown[0];
+	if (_flags.abort == Flags.Abort.asserts || _flags.abort == Flags.Abort.both)
+		throw failures[0];
+}
+
+/// true iff break was performed.
+void debugBreak()
+{
+	writeln(to!string(_flags.breakpoint));
+	version(Posix)
+	{
+		import core.stdc.signal;
+		import core.sys.posix.signal;
+		raise(SIGTRAP);
+	}
+	else version(Windows)
+	{
+		DebugBreak();
+	}
+	else assert(false);
 }
 
 Flags _flags;
@@ -432,7 +480,6 @@ struct Flags
 		_shuffle = DEFAULT_SHUFFLE;
 		_color = DEFAULT_COLOR;
 		_backtrace = DEFAULT_BACKTRACE;
-		_noAbort = DEFAULT_NO_ABORT;
 		_output = DEFAULT_XML;
 		_printTime = DEFAULT_PRINT_TIME;
 		_quiet = DEFAULT_QUIET;
@@ -447,8 +494,8 @@ struct Flags
 			       "seed",        &_seed,
 			       "color",       &_color,
 			       "backtrace",   &_backtrace,
-			       "breakpoint",  &_breakpoint,
-			       "noAbort",     &_noAbort,
+			       "abort",       &_abort,
+			       "break",       &breakpoint,
 			       "output",      &_output,
 			       "version",     delegate() { printVersion(); exit(0); },
 			       "time",        &_printTime,
@@ -501,6 +548,7 @@ struct Flags
 
 	void printUsage()
 	{
+		import std.traits;
 		writeln("Usage: dtest [options]\n"
 		        "Options:\n"
 		        "  --list                           List tested modules names only.\n"
@@ -512,9 +560,11 @@ struct Flags
 		        "  --shuffle                        Random shuffle the execution order for each run.\n"
 		        "  --seed=value                     Seed used for random the shuffle. Defaults to an unpredictable seed.\n"
 		        "  --backtrace                      Add backtrace to console output.\n"
-		        "  --noAbort                        No abort on first assert failure per module.\n"
+		        "  --abort=", to!string(map!(to!string)([EnumMembers!Abort]).joiner("|")),
+		        "  Abort executing a module. Defaults to ", to!string(Abort.init) , ".\n"
 		        "  --output=xml[:file|:directory]   Output results in XML to given file/directory.\n"
-		        "  --breakpoint                     Turn failures into breakpoints.\n"
+		        "  --break=", to!string(map!(to!string)([EnumMembers!Break]).joiner("|")),
+		        "  Break when executing a module. Defaults to ", to!string(Break.init), ".\n"
 		        "  --time                           Print running time per module.\n"
 		        "  --color                          Use colored output. Defaults to automatic.\n"
 		        "  --quiet                          Quiet. No output to console.\n"
@@ -542,14 +592,24 @@ struct Flags
 		Nullable!uint seed() { return _seed; }
 		Color color()        { return _color; }
 		bool backtrace()     { return _backtrace; }
-		bool noAbort()       { return _noAbort; }
+		Abort abort()        { return _abort; }
 		string output()      { return _output; }
-		bool breakpoint()    { return _breakpoint; }
 		bool printTime()     { return _printTime; }
 		bool quiet()         { return _quiet; }
 	}
 
 	private:
+	version(Posix)
+	{
+		enum Abort { both, asserts, throwables, no }
+		enum Break { no, asserts, throwables, both }
+	}
+	else version(Windows)
+	{
+		enum Abort { both, asserts, }
+		enum Break { no, asserts, }
+	}
+	else static assert(false, NOT_IMPLEMENTED);
 
 	bool _list;
 	string[] _include;
@@ -559,9 +619,9 @@ struct Flags
 	Nullable!uint _seed;
 	Color _color;
 	bool _backtrace;
-	bool _noAbort;
+	Abort _abort;
+	Break breakpoint;
 	string _output;
-	bool _breakpoint;
 	bool _printTime;
 	bool _quiet;
 }

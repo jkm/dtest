@@ -1,11 +1,13 @@
+import core.runtime;
+
 unittest
 {
-	assert(1 == 2);
-	assert(1 == 3);
-	assert(1 == 1);
+	assert(Runtime.args[0] == "");
+	assert(Runtime.args[0] == "", "some message");
+	assert(Runtime.args[0] == Runtime.args[0]);
 }
 
 unittest
 {
-	assert(1 == 1);
+	assert(Runtime.args[0] == Runtime.args[0]);
 }
