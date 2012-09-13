@@ -481,30 +481,30 @@ struct Flags
 	import std.getopt;
 	this(ref string args[])
 	{
-		_repeatCount = DEFAULT_REPEAT_COUNT;
-		_shuffle = DEFAULT_SHUFFLE;
-		_color = DEFAULT_COLOR;
-		_backtrace = DEFAULT_BACKTRACE;
-		_output = DEFAULT_XML;
-		_printTime = DEFAULT_PRINT_TIME;
-		_quiet = DEFAULT_QUIET;
+		repeatCount = DEFAULT_REPEAT_COUNT;
+		shuffle = DEFAULT_SHUFFLE;
+		color = DEFAULT_COLOR;
+		backtrace = DEFAULT_BACKTRACE;
+		output = DEFAULT_XML;
+		printTime = DEFAULT_PRINT_TIME;
+		quiet = DEFAULT_QUIET;
 
 		import core.stdc.stdlib;
 		try getopt(args,
-			       "list",        &_list,
-			       "include",     &_include,
-			       "exclude",     &_exclude,
-			       "repeat",      &_repeatCount,
-			       "shuffle",     &_shuffle,
-			       "seed",        &_seed,
-			       "color",       &_color,
-			       "backtrace",   &_backtrace,
-			       "abort",       &_abort,
+			       "list",        &list,
+			       "include",     &include,
+			       "exclude",     &exclude,
+			       "repeat",      &repeatCount,
+			       "shuffle",     &shuffle,
+			       "seed",        &seed,
+			       "color",       &color,
+			       "backtrace",   &backtrace,
+			       "abort",       &this.abort,
 			       "break",       &breakpoint,
-			       "output",      &_output,
+			       "output",      &output,
 			       "version",     delegate() { printVersion(); exit(0); },
-			       "time",        &_printTime,
-			       "q|quiet",     &_quiet,
+			       "time",        &printTime,
+			       "q|quiet",     &quiet,
 			       "version",     delegate() { printVersion(); exit(0); },
 			       "help",        delegate() { printUsage(); exit(0); }
 			      );
@@ -519,35 +519,35 @@ struct Flags
 			exit(1);
 		}
 
-		if (_output)
+		if (output)
 		{
 			import std.path;
-			if (_output.length < "xml".length || _output[0 .. 3] != "xml" ||
-			    _output.length >= "xml:".length && _output[3] != ':')
+			if (output.length < "xml".length || output[0 .. 3] != "xml" ||
+			    output.length >= "xml:".length && output[3] != ':')
 			{
 				stderr.writeln("option --output must start with 'xml'"
 				    "and optionally followed by ':' if a file/directory is passed");
 				exit(1);
 			}
-			assert(_output.length >= "xml".length);
+			assert(output.length >= "xml".length);
 			enum DEFAULT_FILENAME = "results.xml";
-			_output = _output.length <= "xml:".length ? DEFAULT_FILENAME : _output[4 .. $];
+			output = output.length <= "xml:".length ? DEFAULT_FILENAME : output[4 .. $];
 
-			if (!isValidFilename(_output) && !isValidPath(_output) || isDirSeparator(_output[$ - 1]))
+			if (!isValidFilename(output) && !isValidPath(output) || isDirSeparator(output[$ - 1]))
 			{
-				_output = buildPath(_output, DEFAULT_FILENAME);
+				output = buildPath(output, DEFAULT_FILENAME);
 			}
 
-			assert(isValidPath(_output));
+			assert(isValidPath(output));
 
 			import std.file;
-			if (exists(_output)) {
-				stderr.writefln("File '%s' already exists. Skipping.", _output);
+			if (exists(output)) {
+				stderr.writefln("File '%s' already exists. Skipping.", output);
 				exit(1);
 			}
 		}
 
-		if (!_seed.isNull && !_shuffle)
+		if (!seed.isNull && !shuffle)
 			stderr.writefln("Warning: Given a seed but no --shuffle.");
 	}
 
@@ -586,23 +586,6 @@ struct Flags
 		writeln(baseName(Runtime.args[0]), " v", VERSION);
 	}
 
-	import std.typecons : Nullable;
-	@property nothrow
-	{
-		bool list()          { return _list; }
-		string[] include()   { return _include; }
-		string[] exclude()   { return _exclude; }
-		size_t repeatCount() { return _repeatCount; }
-		bool shuffle()       { return _shuffle; }
-		Nullable!uint seed() { return _seed; }
-		Color color()        { return _color; }
-		bool backtrace()     { return _backtrace; }
-		Abort abort()        { return _abort; }
-		string output()      { return _output; }
-		bool printTime()     { return _printTime; }
-		bool quiet()         { return _quiet; }
-	}
-
 	private:
 	version(Posix)
 	{
@@ -616,17 +599,18 @@ struct Flags
 	}
 	else static assert(false, NOT_IMPLEMENTED);
 
-	bool _list;
-	string[] _include;
-	string[] _exclude;
-	size_t _repeatCount;
-	bool _shuffle;
-	Nullable!uint _seed;
-	Color _color;
-	bool _backtrace;
-	Abort _abort;
+	bool list;
+	string[] include;
+	string[] exclude;
+	size_t repeatCount;
+	bool shuffle;
+	import std.typecons : Nullable;
+	Nullable!uint seed;
+	Color color;
+	bool backtrace;
+	Abort abort;
 	Break breakpoint;
-	string _output;
-	bool _printTime;
-	bool _quiet;
+	string output;
+	bool printTime;
+	bool quiet;
 }
