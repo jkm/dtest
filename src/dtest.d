@@ -453,7 +453,6 @@ void myAssertHandler(string file, size_t line, string msg = null)
 /// true iff break was performed.
 void debugBreak()
 {
-	writeln(to!string(_flags.breakpoint));
 	version(Posix)
 	{
 		import core.stdc.signal;
