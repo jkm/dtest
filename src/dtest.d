@@ -88,10 +88,11 @@ bool withUnittests(ModuleInfo* m)
 	return m.name != moduleName!(TestResult) && m.unitTest;
 }
 
-/// Returns: an InputRange of TestResult for each given module.
+/// Returns: an InputRange of TestResult for each given module. This range is
+/// lazy.
 auto testModules(ModuleInfo*[] modules)
 {
-	return modules.map!executeUnittests();
+	return map!((m) => executeUnittests(m))(modules);
 }
 
 /// Execute unittests for given module.
@@ -374,7 +375,9 @@ int main(string[] args)
 		if (_flags.shuffle) randomShuffle(filteredModules, rnd);
 
 		// execute unittests
-		auto results = testModules(filteredModules);
+		TestResult[] results;
+		results.length = filteredModules.length;
+		testModules(filteredModules).copy(results);
 
 		// remember failed modules
 		failedModules.put(results.filter!((m) => m.failed)()
