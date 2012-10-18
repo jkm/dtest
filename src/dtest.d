@@ -380,8 +380,8 @@ int main(string[] args)
 		testModules(filteredModules).copy(results);
 
 		// remember failed modules
-		failedModules.put(results.filter!((m) => m.failed)()
-		                  .map!((m) => m.moduleInfo.name)());
+		failedModules.put(results.filter!((r) => r.failed)()
+		                  .map!((r) => r.moduleInfo.name)());
 
 		formatResults(results);
 	}
