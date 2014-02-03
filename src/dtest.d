@@ -182,7 +182,7 @@ void unregisterFormatter(string name) nothrow
 /// Formats output for the console.
 void consoleFormatter(TestResult[] results)
 {
-	File.LockingTextWriter console = consoleFile.lockingTextWriter;
+	auto console = consoleFile.lockingTextWriter();
 	foreach (res; results)
 	{
 		with(res)
@@ -308,7 +308,7 @@ File consoleFile; // console output is sent here
 void initTesting(ref string[] args)
 {
 	_flags = Flags(args);
-	setAssertHandler(&myAssertHandler);
+	assertHandler = &myAssertHandler;
 
 	// register predefined formatters
 	registerFormatter("console", &consoleFormatter);
@@ -340,7 +340,7 @@ import std.random;
 int main(string[] args)
 {
 	initTesting(args);
-	File.LockingTextWriter console = consoleFile.lockingTextWriter;
+	auto console = consoleFile.lockingTextWriter();
 
 	auto filteredModules =
 	  filterModules!((m) => withUnittests(m) && includeExcludeModule(m))(modules);
@@ -437,7 +437,7 @@ version(Posix)
 	}
 }
 
-void myAssertHandler(string file, size_t line, string msg = null)
+void myAssertHandler(string file, size_t line, string msg) nothrow
 {
 	if (_flags.breakpoint == Flags.Break.asserts ||
 		_flags.breakpoint == Flags.Break.both)
@@ -454,7 +454,7 @@ void myAssertHandler(string file, size_t line, string msg = null)
 }
 
 /// true iff break was performed.
-void debugBreak()
+void debugBreak() nothrow
 {
 	version(Posix)
 	{
