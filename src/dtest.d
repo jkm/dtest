@@ -360,7 +360,7 @@ int main(string[] args)
 	Random rnd;
 	if (_flags.shuffle)
 	{
-		auto seed = _flags.seed < 0 ? unpredictableSeed : _flags.seed;
+		auto seed = _flags.seed.isNull ? unpredictableSeed : _flags.seed;
 		console.formattedWrite("Seeding with %s\n", seed);
 		rnd = Random(seed);
 	}
@@ -506,7 +506,7 @@ struct Flags
 			       "exclude",     &exclude,
 			       "repeat",      &repeatCount,
 			       "shuffle",     &shuffle,
-			       "seed",        &seed,
+			       "seed",        (string option, string value) { seed = parse!(typeof(seed.get()))(value); },
 			       "color",       &color,
 			       "backtrace",   &backtrace,
 			       "abort",       &this.abort,
@@ -557,7 +557,7 @@ struct Flags
 			}
 		}
 
-		if (seed >= 0 && !shuffle)
+		if (!seed.isNull && !shuffle)
 			stderr.writefln("Warning: Given a seed but no --shuffle.");
 	}
 
@@ -615,7 +615,7 @@ struct Flags
 	size_t repeatCount;
 	bool shuffle;
 	import std.typecons : Nullable;
-	int seed = -1;
+	Nullable!uint seed;
 	Color color;
 	bool backtrace;
 	Abort abort;
