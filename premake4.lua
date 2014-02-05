@@ -3,7 +3,7 @@ solution "dtest"
 	location       (_OPTIONS["to"])
 	targetdir      (_OPTIONS["to"])
 	flags          { "ExtraWarnings", "Symbols" }
-	buildoptions   { "-wi -property" }
+	buildoptions   { "-wi" }
 	configurations { "Optimize", "Tests" }
 	platforms      { "Native", "x32", "x64" }
 	files          { "src/dtest.d" }
