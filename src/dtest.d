@@ -412,8 +412,28 @@ Throwable[] errors;
 version(Posix)
 {
 	// wrap throwing function
-	extern extern(C) void __real__d_throwc(Object* h);
-	extern(C) void __wrap__d_throwc(Object* h)
+	version(DigitalMars)
+	{
+		extern extern(C) void __real__d_throwc(Object* h);
+		alias dThrow = __real__d_throwc;
+		enum funcName = "__wrap__d_throwc";
+	}
+	else version(GNU)
+	{
+		extern extern(C) void __real__d_throw(Object* h);
+		alias dThrow = __real__d_throw;
+		enum funcName = "__wrap__d_throw";
+	}
+	else version(LLVM)
+	{
+		extern extern(C) void __real__d_throw_exception(Object* h);
+		alias dThrow = __real__d_throw_exception;
+		enum funcName = "__wrap__d_throw_exception";
+	}
+	else static assert(false, "unable to wrap _d_throw");
+
+	mixin(format(q{
+	extern(C) void %s(Object* h)
 	{
 		auto t = cast(Throwable) h;
 		assert(t !is null);
@@ -421,7 +441,7 @@ version(Posix)
 		auto e = cast(AssertError) t;
 		// decision for asserts was already made
 		// if it reaches here pass it on
-		if (e !is null) __real__d_throwc(h);
+		if (e !is null) dThrow(h);
 
 		if (_flags.breakpoint == Flags.Break.throwables ||
 		    _flags.breakpoint == Flags.Break.both)
@@ -431,10 +451,11 @@ version(Posix)
 		}
 
 		if (_flags.abort == Flags.Abort.throwables || _flags.abort == Flags.Abort.both)
-			__real__d_throwc(h);
+			dThrow(h);
 		else
 			errors ~= t;
 	}
+	}, funcName));
 }
 
 void myAssertHandler(string file, size_t line, string msg) nothrow

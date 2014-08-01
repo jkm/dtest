@@ -25,7 +25,7 @@ DCFLAGS := $(DC_INFORMATIONAL_WARNINGS_FLAG) $(DC_WARNDEPRECATE_FLAG) $(DC_SYMBO
 DCFLAGS += $(DC_IMPORTPATH_FLAG)$(SOURCE_DIR)
 
 DCFLAGS_RELEASE := $(DC_OPTIMIZE_FLAG) $(DC_INLINE_FLAG) $(DC_RELEASE_FLAG) $(DC_NOBOUNDSCHECK_FLAG)
-DCFLAGS_DEBUG := $(DC_DEBUG_FLAG) $(DC_UNITTEST_FLAG)
+DCFLAGS_DEBUG := $(DC_DEBUG_FLAG)
 
 BUILD ?= release
 ifeq ($(BUILD), release)
@@ -38,6 +38,12 @@ endif
 # wrapping
 ifeq ($(DC), dmd)
 	LDFLAGS += $(DC_LINKER_FLAG)--wrap=_d_throwc
+endif
+ifeq ($(DC), gdc)
+	LDFLAGS += $(DC_LINKER_FLAG)--wrap=_d_throw
+endif
+ifeq ($(DC), ldc2)
+	LDFLAGS += $(DC_LINKER_FLAG)--wrap=_d_throw_exception
 endif
 
 .PHONY: all
