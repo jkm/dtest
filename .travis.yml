@@ -1,0 +1,28 @@
+language: c
+
+before_install:
+   - sudo apt-get install gcc-multilib # needed for dmd on travis
+   - make DC=$DC download
+   - case "$DC" in
+       dmd)
+         ;;
+       gdc)
+         export PATH=$PATH:$PWD/x86_64-gdcproject-linux-gnu/bin;
+         ;;
+       ldc2)
+         export PATH=$PATH:$PWD/ldc2-0.13.0-linux-x86_64/bin;
+         ;;
+     esac
+
+env:
+   - DC="dmd" BUILD="release"
+   - DC="dmd" BUILD="debug"
+   - DC="gdc" BUILD="release"
+   - DC="gdc" BUILD="debug"
+   - DC="ldc2" BUILD="release"
+   - DC="ldc2" BUILD="debug"
+
+script:
+   - make DC=$DC BUILD=$BUILD
+   - make DC=$DC BUILD=$BUILD docs
+   - make DC=$DC BUILD=$BUILD tests

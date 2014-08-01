@@ -76,6 +76,26 @@ docs: $(DOCS)
 	$(CP) docs/bootDoc/bootdoc.js $(DOCS_DIR)
 	$(CP) docs/bootDoc/ddoc-icons $(DOCS_DIR)
 
+.PHONY: download
+download: download_$(DC)
+
+.PHONY: download_dmd
+download_dmd:
+	wget http://downloads.dlang.org/releases/2014/dmd_2.065.0-0_amd64.deb
+	sudo dpkg -i dmd_2.065.0-0_amd64.deb
+
+.PHONY: download_gdc
+download_gdc:
+	wget http://gdcproject.org/downloads/binaries/x86_64-linux-gnu/native_2.065_gcc4.9.0_a8ad6a6678_20140615.tar.xz
+	tar xf native_2.065_gcc4.9.0_a8ad6a6678_20140615.tar.xz
+	@echo "Update your PATH via export PATH=\$$PATH:\$$PWD/x86_64-gdcproject-linux-gnu/bin"
+
+.PHONY: download_ldc2
+download_ldc2:
+	wget https://github.com/ldc-developers/ldc/releases/download/v0.13.0/ldc2-0.13.0-linux-x86_64.tar.xz
+	tar xf ldc2-0.13.0-linux-x86_64.tar.xz
+	@echo "Update your PATH via export PATH=\$$PATH:\$$PWD/ldc2-0.13.0-linux-x86_64/bin"
+
 .PHONY: clean
 clean:
 	$(RMALL) $(TEST_EXECUTABLE) $(TEST_EXECUTABLE_DBG) $(STATIC_LIBRARY) $(STATIC_LIBRARY_DBG) $(SHARED_LIBRARY) $(SHARED_LIBRARY_DBG) $(EXAMPLE) $(EXAMPLE_DBG) $(OBJECTS) $(EXAMPLE_OBJECTS) $(DOCS) $(DOCS_DIR)
