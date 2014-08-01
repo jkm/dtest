@@ -36,7 +36,7 @@ ifeq ($(BUILD), debug)
 endif
 
 # wrapping
-ifeq ($(DC), gdc)
+ifeq ($(DC), dmd)
 	LDFLAGS += $(DC_LINKER_FLAG)--wrap=_d_throwc
 endif
 

@@ -23,6 +23,8 @@ env:
    - DC="ldc2" BUILD="debug"
 
 script:
+   - make DC=$DC BUILD=$BUILD dtest tests
+   - make DC=$DC BUILD=$BUILD clean
    - make DC=$DC BUILD=$BUILD
+   - ./example || true
    - make DC=$DC BUILD=$BUILD docs
-   - make DC=$DC BUILD=$BUILD tests
