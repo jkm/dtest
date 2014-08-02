@@ -81,11 +81,11 @@ ModuleInfo*[] filterModules(alias pred)(ModuleInfo*[] modules)
 	return filteredModules;
 }
 
-/// Returns: true iff ModuleInfo defines unittests and is not this module.
+/// Returns: true iff ModuleInfo defines unittests.
 bool withUnittests(ModuleInfo* m)
 {
 	import std.traits;
-	return m.name != moduleName!(TestResult) && m.unitTest;
+	return m.unitTest != null;
 }
 
 /// Returns: an InputRange of TestResult for each given module. This range is
@@ -332,6 +332,11 @@ bool includeExcludeModule(ModuleInfo* m)
 	// exclude wins over include
 	return (!_flags.include || _flags.include.any!((f) => m.name.match(regex(f)))())
 	       && (!_flags.exclude || _flags.exclude.find!((f) => m.name.match(regex(f)))().empty);
+}
+
+version(dtest_unittest)
+unittest
+{
 }
 
 // due to BUG 8586
