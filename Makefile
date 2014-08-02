@@ -16,7 +16,7 @@ EXAMPLE_DIR := tests
 EXAMPLES := $(call rwildcard, $(EXAMPLE_DIR), *.d)
 EXAMPLE_OBJECTS := $(patsubst %.d, %.o, $(EXAMPLES))
 
-DOCS_DIR := docs/html/
+DOCS_DIR := docs/html
 DOCS = $(patsubst %.d, %.html, $(SOURCES))
 
 # flags
@@ -85,6 +85,23 @@ docs: $(DOCS)
 	$(CP) docs/bootDoc/bootdoc.css $(DOCS_DIR)
 	$(CP) docs/bootDoc/bootdoc.js $(DOCS_DIR)
 	$(CP) docs/bootDoc/ddoc-icons $(DOCS_DIR)
+
+.PHONY: deploy
+deploy: github_pages
+	@echo "Deploying"
+
+.PHONY: github_pages
+github_pages: docs
+	@echo "Deploying documentation"
+	git config user.name "$(shell git --no-pager show -s --format='%an' HEAD)"
+	git config user.email "$(shell git --no-pager show -s --format='%ae' HEAD)"
+	git checkout --orphan gh-pages
+	git rm -rf --cached .
+	git add $(DOCS_DIR)/*
+	git mv $(DOCS_DIR)/* .
+	git status
+	git commit --allow-empty-message -m ""
+	git push origin +gh-pages
 
 .PHONY: download
 download: download_$(DC)

@@ -15,12 +15,15 @@ before_install:
      esac
 
 env:
-   - DC="dmd" BUILD="release"
-   - DC="dmd" BUILD="debug"
-   - DC="gdc" BUILD="release"
-   - DC="gdc" BUILD="debug"
-   - DC="ldc2" BUILD="release"
-   - DC="ldc2" BUILD="debug"
+   global:
+     - secure: "OZT3w/6lZwFfScZ5eQbtqYYOJMD9PJzHxmxCBV1HQjuPIx/ktSxXb73CUiob5bFK/rWjRlKBO8Jl1n9IDXMXSju+N1gR7O+vRwKelAyTBWjfGXHJeHyQddrCSrMkJ7o+Amvd+2LLrdPYQbS5uarb6jmm1CLz3j1TF36a2Jrup2s="
+   matrix:
+     - DC="dmd" BUILD="release"
+     - DC="dmd" BUILD="debug"
+     - DC="gdc" BUILD="release"
+     - DC="gdc" BUILD="debug"
+     - DC="ldc2" BUILD="release"
+     - DC="ldc2" BUILD="debug"
 
 script:
    - make DC=$DC BUILD=$BUILD dtest tests
@@ -28,3 +31,7 @@ script:
    - make DC=$DC BUILD=$BUILD
    - ./example || true
    - make DC=$DC BUILD=$BUILD docs
+
+after_success:
+   - git remote set-url origin "https://${GH_TOKEN}@github.com/jkm/dtest.git"
+   - test $DC = dmd -a $BUILD = release && make deploy
