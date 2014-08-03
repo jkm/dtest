@@ -36,8 +36,6 @@
  * $(LINK_TEXT http://jenkins-ci.org/, Jenkins) and similar tools output by
  * outputting JUnit-compatible XML output (see
  * $(LOCAL_LINK_TEXT xmlFormatterAnchor, xmlFormatter)).
- * E.g. this output for dtest is available at
- * $(LINK_TEXT https://buildhive.cloudbees.com/job/jkm/job/$(PROJECTNAME)/lastCompletedBuild/testReport/history/, buildhive).
  *
  * When using GNU ld for linking then aborting/breaking on any Throwable is
  * configurable. On Windows aborting/breaking can only be configured for
