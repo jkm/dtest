@@ -2,7 +2,7 @@ PROJECTNAME = dtest
 REPOSITORY_URL = http://github.com/jkm/$(PROJECTNAME)
 REPOSRCTREE = $(REPOSITORY_URL)/blob/master/src
 REFERENCETOP = $(PROJECTNAME).html
-TITLEBARTEXT = <a href="https://travis-ci.org/jkm/$(PROJECTNAME)"><img src="https://travis-ci.org/jkm/$(PROJECTNAME).svg?branch=master/" alt="Build Status" /></a>
+TITLEBARTEXT = <a href="https://travis-ci.org/jkm/$(PROJECTNAME)"><img src="https://travis-ci.org/jkm/$(PROJECTNAME).svg?branch=master" alt="Build Status" /></a>
 RESOURCEROOT =
 PACKAGESEP = .
 FAVICON = $(RESOURCEROOT)ico/favicon.ico
