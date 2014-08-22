@@ -1,6 +1,7 @@
 language: c
 
 before_install:
+   - sudo apt-get update
    - sudo apt-get install gcc-multilib # needed for dmd on travis
    - make DC=$DC download
    - case "$DC" in
