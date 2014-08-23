@@ -113,15 +113,32 @@ define INDEX_HTML
 <html lang="en-US">
 	<head>
 		<meta charset="UTF-8">
-		<meta http-equiv="refresh" content=REFRESH_CONTENT>
+		<meta http-equiv="refresh" content="1;url=/dtest/RELEASE_NAME/">
 		<title>Redirect</title>
 	</head>
 	<body>
-		If you are not redirected automatically, follow to <a href=HREF>latest docs</a>.
+		If you are not redirected automatically, follow to <a href="/dtest/RELEASE_NAME/">latest build</a>.
 	</body>
 </html>
 endef
 export INDEX_HTML
+
+define BUILD_INDEX_HTML
+<!DOCTYPE HTML>
+<html lang="en-US">
+	<head>
+		<meta charset="UTF-8">
+		<title>Build for commit RELEASE_NAME</title>
+	</head>
+	<body>
+		<ul>
+			<li><a href="docs/dtest.html">Documentation</a></li>
+		</ul>
+		built via travis <a href="https://travis-ci.org/jkm/dtest/builds/TRAVIS_BUILD_ID">build TRAVIS_BUILD_NUMBER</a> from <a href="https://github.com/jkm/dtest/tree/RELEASE_NAME">source</a>.
+	</body>
+</html>
+endef
+export BUILD_INDEX_HTML
 
 .PHONY: gh_pages
 gh_pages: docs release
@@ -133,8 +150,9 @@ gh_pages: docs release
 	$(MKDIR) $(RELEASE_NAME)/docs
 	$(CP) $(DOCS_DIR)/* $(RELEASE_NAME)/docs
 	$(CP) $(RELEASE_ARCHIVES) $(RELEASE_NAME)
+	echo "$$BUILD_INDEX_HTML" | m4 -DRELEASE_NAME=$(RELEASE_NAME) -DTRAVIS_BUILD_ID="$(TRAVIS_BUILD_ID)" -DTRAVIS_BUILD_NUMBER="$(TRAVIS_BUILD_NUMBER)" > $(RELEASE_NAME)/index.html
 	git add $(RELEASE_NAME)
-	echo "$$INDEX_HTML" | $(CPP) -x c -P -DREFRESH_CONTENT="1;url=/dtest/$(RELEASE_NAME)/docs/dtest.html" -DHREF="/dtest/$(RELEASE_NAME)/docs/dtest.html" - -o index.html
+	echo "$$INDEX_HTML" | m4 -DRELEASE_NAME="$(RELEASE_NAME)" > index.html
 	git add index.html
 	git commit --amend -m "Add pages"
 	git push origin +gh-pages
