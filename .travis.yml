@@ -35,4 +35,4 @@ script:
 
 after_success:
    - git remote set-url origin "https://${GH_TOKEN}@github.com/jkm/dtest.git"
-   - test $DC = dmd -a $BUILD = release && make deploy
+   - test $DC = dmd -a $TRAVIS_PULL_REQUEST = false && make deploy

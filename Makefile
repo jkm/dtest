@@ -1,4 +1,4 @@
-include make/d.mk make/variables.mk make/extensions.mk make/dbg.mk make/util.mk
+include make/d.mk make/variables.mk make/extensions.mk make/dbg.mk make/util.mk make/compress.mk
 
 STATIC_LIBRARY := libdtest$(STATIC_LIBRARY_EXT)
 STATIC_LIBRARY_DBG := $(patsubst %, %.dbg, $(STATIC_LIBRARY))
@@ -86,21 +86,57 @@ docs: $(DOCS)
 	$(CP) docs/bootDoc/bootdoc.js $(DOCS_DIR)
 	$(CP) docs/bootDoc/ddoc-icons $(DOCS_DIR)
 
-.PHONY: deploy
-deploy: github_pages
-	@echo "Deploying"
+RELEASE_FILES := $(STATIC_LIBRARY) $(STATIC_LIBRARY_DBG)
+RELEASE_ARCHIVES := $(addprefix dtest-$(OS)-$(ARCH)-$(BUILD), .tar .tar.gz .tar.bz2 .tar.xz .zip)
 
-.PHONY: github_pages
-github_pages: docs
-	@echo "Deploying documentation"
+.PHONY: release
+release: $(RELEASE_ARCHIVES)
+
+dtest-$(OS)-$(ARCH)-$(BUILD).tar: $(RELEASE_FILES)
+	tar -cf $@ $^
+
+dtest-$(OS)-$(ARCH)-$(BUILD).zip: $(RELEASE_FILES)
+	zip $@ $^
+
+.PHONY: deploy
+deploy: gh_pages
+
+COMMIT := $(shell git rev-parse HEAD)
+TAG := $(shell git tag --points-at $(COMMIT))
+RELEASE_NAME := $(COMMIT)
+ifneq ($(TAG), )
+	RELEASE_NAME := $(TAG)
+endif
+
+define INDEX_HTML
+<!DOCTYPE HTML>
+<html lang="en-US">
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="refresh" content=REFRESH_CONTENT>
+		<title>Redirect</title>
+	</head>
+	<body>
+		If you are not redirected automatically, follow to <a href=HREF>latest docs</a>.
+	</body>
+</html>
+endef
+export INDEX_HTML
+
+.PHONY: gh_pages
+gh_pages: docs release
+	@echo "Deploying to github pages"
 	git config user.name "$(shell git --no-pager show -s --format='%an' HEAD)"
 	git config user.email "$(shell git --no-pager show -s --format='%ae' HEAD)"
-	git checkout --orphan gh-pages
-	git rm -rf --cached .
-	git add $(DOCS_DIR)/*
-	git mv $(DOCS_DIR)/* .
-	git status
-	git commit --allow-empty-message -m ""
+	git fetch origin gh-pages:gh-pages
+	git checkout gh-pages
+	$(MKDIR) $(RELEASE_NAME)/docs
+	$(CP) $(DOCS_DIR)/* $(RELEASE_NAME)/docs
+	$(CP) $(RELEASE_ARCHIVES) $(RELEASE_NAME)
+	git add $(RELEASE_NAME)
+	echo "$$INDEX_HTML" | $(CPP) -x c -P -DREFRESH_CONTENT="1;url=/dtest/$(RELEASE_NAME)/docs/dtest.html" -DHREF="/dtest/$(RELEASE_NAME)/docs/dtest.html" - -o index.html
+	git add index.html
+	git commit --amend -m "Add pages"
 	git push origin +gh-pages
 
 .PHONY: download
@@ -125,4 +161,4 @@ download_ldc2:
 
 .PHONY: clean
 clean:
-	$(RMALL) $(TEST_EXECUTABLE) $(TEST_EXECUTABLE_DBG) $(STATIC_LIBRARY) $(STATIC_LIBRARY_DBG) $(SHARED_LIBRARY) $(SHARED_LIBRARY_DBG) $(EXAMPLE) $(EXAMPLE_DBG) $(OBJECTS) $(EXAMPLE_OBJECTS) $(DOCS) $(DOCS_DIR)
+	$(RMALL) $(TEST_EXECUTABLE) $(TEST_EXECUTABLE_DBG) $(STATIC_LIBRARY) $(STATIC_LIBRARY_DBG) $(SHARED_LIBRARY) $(SHARED_LIBRARY_DBG) $(EXAMPLE) $(EXAMPLE_DBG) $(OBJECTS) $(EXAMPLE_OBJECTS) $(DOCS) $(DOCS_DIR) $(RELEASE_NAME) $(RELEASE_ARCHIVES)
