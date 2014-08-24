@@ -6,12 +6,21 @@ dtest - Testing D modules
 Consult its [documentation](http://jkm.github.com/dtest/) for more
 information.
 
-Configure and Build
-===================
+Cloning
+=======
+
+To avoid cloning other branches (in particular the gh-pages branch which
+contains each build) consider cloning with `--single-branch`
+
+    $ git clone --single-branch --recursive url://to/repository
 
 Don't forget to update the submodules if you haven't cloned recursively.
 
     $ git submodule init; git submodule update;
+
+Configure and Build
+===================
+
     $ make
 
 Testing
