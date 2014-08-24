@@ -17,7 +17,7 @@ before_install:
 
 env:
    global:
-     - secure: "OZT3w/6lZwFfScZ5eQbtqYYOJMD9PJzHxmxCBV1HQjuPIx/ktSxXb73CUiob5bFK/rWjRlKBO8Jl1n9IDXMXSju+N1gR7O+vRwKelAyTBWjfGXHJeHyQddrCSrMkJ7o+Amvd+2LLrdPYQbS5uarb6jmm1CLz3j1TF36a2Jrup2s="
+     - secure: "OSfnw2HwXBWUWpdL8RMcDPgLNqD4cjgdjFmr4oo/ADPjmYG8Wt0fJNhQYo5/maUen9ERsMn0H+q6WIuFywhPeaLEN0jPBuYLWFZmFLiNvRIELWZI9qyCsTEO69MYauwlyPSuBh4lawWB+8lLSAmWIg33ZGrk+kGucKdNAO6wFto="
    matrix:
      - DC="dmd" BUILD="release"
      - DC="dmd" BUILD="debug"
