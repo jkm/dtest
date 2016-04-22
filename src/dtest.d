@@ -232,11 +232,13 @@ void xmlFormatter(TestResult[] results)
 	b.tag.attr["id"] = "0";
 	b.tag.attr["package"] = "";
 	b.tag.attr["name"] = "some";
-	import std.datetime;
+	import std.datetime : Clock;
 	auto time = Clock.currTime();
-	time.fracSec = FracSec.from!"msecs"(0);
+	import core.time : Duration;
+	time.fracSecs = Duration.zero();
 	b.tag.attr["timestamp"] = time.toISOExtString();
 	b.tag.attr["hostname"] = Socket.hostName();
+	import std.conv : to;
 	b.tag.attr["tests"] = to!string(results.length);
 	b.tag.attr["failures"] = to!string(results.count!((r) => !r.failures.empty)());
 	b.tag.attr["errors"] = to!string(results.count!((r) => !r.errors.empty)());
@@ -263,6 +265,7 @@ void xmlFormatter(TestResult[] results)
 				e ~= new Element("error", formatThrowable(t));
 		}
 	}
+	import std.algorithm : copy;
 	a.pretty(4).joiner("\n").copy(File(_flags.output, "w").lockingTextWriter());
 }
 
@@ -513,7 +516,7 @@ struct Flags
 	// due to BUG 8586
 	// import must be here
 	import std.getopt;
-	this(ref string args[])
+	this(ref string[] args)
 	{
 		repeatCount = DEFAULT_REPEAT_COUNT;
 		shuffle = DEFAULT_SHUFFLE;
