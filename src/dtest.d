@@ -201,11 +201,11 @@ string formatThrowable(Throwable t)
 	import std.string : format;
 	return format("%s@%s(%s): %s\n", t.classinfo.name, t.file, t.line, t.msg) ~
 	       (t.next !is null ? "  " ~ t.next.formatThrowable() : "") ~
-		   (_flags.backtrace ? formatBacktrace(t) : "");
+		   (_flags.stacktrace ? formatStacktrace(t) : "");
 }
 
-/// Returns: a string that formats the given Throwable's backtrace.
-string formatBacktrace(Throwable t)
+/// Returns: a string that formats the given Throwable's stacktrace.
+string formatStacktrace(Throwable t)
 {
 	string result = "------\n";
 	foreach (frame; t.info)
@@ -528,7 +528,7 @@ struct Flags
 		     DEFAULT_REPEAT_COUNT = 1,
 		     DEFAULT_COLOR = Color.automatic,
 		     DEFAULT_SHUFFLE = false,
-		     DEFAULT_BACKTRACE = false,
+		     DEFAULT_STACKTRACE = false,
 		     DEFAULT_PRINT_TIME = false,
 		     DEFAULT_QUIET = false,
 		     DEFAULT_BREAKPOINT = false,
@@ -541,7 +541,7 @@ struct Flags
 		repeatCount = DEFAULT_REPEAT_COUNT;
 		shuffle = DEFAULT_SHUFFLE;
 		color = DEFAULT_COLOR;
-		backtrace = DEFAULT_BACKTRACE;
+		stacktrace = DEFAULT_STACKTRACE;
 		output = DEFAULT_XML;
 		printTime = DEFAULT_PRINT_TIME;
 		quiet = DEFAULT_QUIET;
@@ -558,7 +558,7 @@ struct Flags
 			       "shuffle",     &shuffle,
 			       "seed",        (string option, string value) { seed = value.parse!(typeof(seed.get())); },
 			       "color",       &color,
-			       "backtrace",   &backtrace,
+			       "stacktrace",  &stacktrace,
 			       "abort",       &this.abort,
 			       "break",       &breakpoint,
 			       "output",      &output,
@@ -627,7 +627,7 @@ struct Flags
 		        "  --repeat=count                      Makes <count> runs over the tests. Defaults to ", DEFAULT_REPEAT_COUNT, ".\n"
 		        "  --shuffle                           Random shuffle the execution order for each run.\n"
 		        "  --seed=value                        Seed used for random the shuffle. Defaults to an unpredictable seed.\n"
-		        "  --backtrace                         Add backtrace to console output.\n"
+		        "  --stacktrace                        Add stacktrace to console output.\n"
 		        "  --time                              Print running time per module.\n"
 		        "  --output=xml[:file|:directory]      Output results in XML to given file/directory.\n"
 		        "  --abort=", [EnumMembers!Abort].map!(to!string).joiner("|"),
@@ -670,7 +670,7 @@ struct Flags
 	import std.typecons : Nullable;
 	Nullable!uint seed;
 	Color color;
-	bool backtrace;
+	bool stacktrace;
 	Abort abort;
 	Break breakpoint;
 	string output;
