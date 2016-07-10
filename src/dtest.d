@@ -56,6 +56,7 @@ enum VERSION = 0.1;
 /// Returns: an array of ModuleInfo* for known modules.
 ModuleInfo*[] modules()
 {
+	import std.array : appender;
 	auto app = appender!(ModuleInfo*[])();
 	foreach (m; ModuleInfo) app.put(m);
 	return app.data;
@@ -65,6 +66,7 @@ ModuleInfo*[] modules()
 ModuleInfo*[] filterModules(alias pred)(ModuleInfo*[] modules)
 {
 	import std.algorithm : filter;
+	import std.array : array;
 	auto filteredModules = modules.filter!pred().array();
 	return filteredModules;
 }
@@ -72,7 +74,6 @@ ModuleInfo*[] filterModules(alias pred)(ModuleInfo*[] modules)
 /// Returns: true iff ModuleInfo defines unittests.
 bool withUnittests(ModuleInfo* m)
 {
-	import std.traits;
 	return m.unitTest != null;
 }
 
@@ -94,7 +95,7 @@ in
 body
 {
 	TestResult res = TestResult(m);
-	import std.datetime;
+	import std.datetime : StopWatch;
 	StopWatch sw;
 	failures = [];
 	errors = [];
@@ -149,7 +150,11 @@ struct TestResult
 	}
 
 	/// Returns: true, iff there are failures or errors.
-	bool failed() nothrow pure { return !failures.empty || !errors.empty; }
+	bool failed() nothrow pure
+	{
+		import std.array : empty;
+		return !failures.empty || !errors.empty;
+	}
 }
 
 /// A Formatter formats TestResult. That is, it converts the TestResults for
@@ -183,6 +188,7 @@ void consoleFormatter(TestResult[] results)
 				console.formattedWrite(" (took %s ms)", executionTime.msecs);
 			console.formattedWrite("\n");
 
+			import std.range : chain;
 			foreach (t; chain(failures, errors))
 				console.formattedWrite(formatThrowable(t));
 		}
@@ -192,7 +198,7 @@ void consoleFormatter(TestResult[] results)
 /// Returns: a string that formats the given Throwable.
 string formatThrowable(Throwable t)
 {
-	import std.string;
+	import std.string : format;
 	return format("%s@%s(%s): %s\n", t.classinfo.name, t.file, t.line, t.msg) ~
 	       (t.next !is null ? "  " ~ formatThrowable(t.next) : "") ~
 		   (_flags.backtrace ? formatBacktrace(t) : "");
@@ -235,6 +241,7 @@ void xmlFormatter(TestResult[] results)
 	import std.conv : to;
 	b.tag.attr["tests"] = to!string(results.length);
 	import std.algorithm : count;
+	import std.array : empty;
 	b.tag.attr["failures"] = to!string(results.count!((r) => !r.failures.empty)());
 	b.tag.attr["errors"] = to!string(results.count!((r) => !r.errors.empty)());
 	import std.algorithm : reduce;
@@ -266,11 +273,12 @@ void xmlFormatter(TestResult[] results)
 	a.pretty(4).joiner("\n").copy(File(_flags.output, "w").lockingTextWriter());
 }
 
-import std.range;
+import std.range : isInputRange, ElementType;
 /// Applies all registered formatters to the given input range of TestResults.
 void formatResults(R)(R results)
 	if (isInputRange!R && is(ElementType!R == TestResult))
 {
+	import std.array : array;
 	foreach (f; formatter.byValue())
 		f(results.array());
 }
@@ -333,6 +341,7 @@ bool includeExcludeModule(ModuleInfo* m)
 {
 	import std.algorithm : any, find;
 	import std.regex : regex, match;
+	import std.range : empty;
 	// exclude wins over include
 	return (!_flags.include || _flags.include.any!((f) => m.name.match(regex(f)))())
 	       && (!_flags.exclude || _flags.exclude.find!((f) => m.name.match(regex(f)))().empty);
@@ -352,6 +361,7 @@ int main(string[] args)
 	  filterModules!((m) => withUnittests(m) && includeExcludeModule(m))(modules);
 
 	import std.format : formattedWrite;
+	import std.range : empty;
 	if (filteredModules.empty)
 	{
 		console.formattedWrite("No modules to test.\n");
@@ -377,6 +387,7 @@ int main(string[] args)
 	import std.conv : to;
 	auto numberLength = to!int(to!string(_flags.repeatCount).length);
 
+	import std.array : appender;
 	auto failedModules = appender!(string[])();
 	foreach (i; 0 .. _flags.repeatCount)
 	{
@@ -398,9 +409,10 @@ int main(string[] args)
 		formatResults(results);
 	}
 
+	import std.range : repeat;
 	import std.algorithm : joiner;
 	console.formattedWrite("======%s======\n",
-	                      std.range.repeat("=", 10 + 2 * numberLength).joiner());
+	                      repeat("=", 10 + 2 * numberLength).joiner());
 
 	if (!failedModules.data.empty)
 	{
@@ -496,8 +508,8 @@ void debugBreak() nothrow
 {
 	version(Posix)
 	{
-		import core.stdc.signal;
-		import core.sys.posix.signal;
+		import core.stdc.signal : raise;
+		import core.sys.posix.signal : SIGTRAP;
 		raise(SIGTRAP);
 	}
 	else version(Windows)
@@ -535,9 +547,9 @@ struct Flags
 		quiet = DEFAULT_QUIET;
 
 		import std.stdio : stderr;
-		import core.stdc.stdlib;
+		import core.stdc.stdlib : exit;
 		import std.getopt : getopt;
-		import std.conv : parse;
+		import std.conv : parse, ConvException;
 		try getopt(args,
 			       "list",        &list,
 			       "include",     &include,
@@ -556,7 +568,7 @@ struct Flags
 			       "version",     delegate() { printVersion(); exit(0); },
 			       "help",        delegate() { printUsage(); exit(0); }
 			      );
-		catch(std.conv.ConvException e)
+		catch(ConvException e)
 		{
 			stderr.writeln(e.msg);
 			exit(1);
@@ -569,7 +581,6 @@ struct Flags
 
 		if (output)
 		{
-			import std.path;
 			if (output.length < "xml".length || output[0 .. 3] != "xml" ||
 			    output.length >= "xml:".length && output[3] != ':')
 			{
@@ -581,6 +592,7 @@ struct Flags
 			enum DEFAULT_FILENAME = "results.xml";
 			output = output.length <= "xml:".length ? DEFAULT_FILENAME : output[4 .. $];
 
+			import std.path : isValidFilename, isValidPath, isDirSeparator, buildPath;
 			if (!isValidFilename(output) && !isValidPath(output) || isDirSeparator(output[$ - 1]))
 			{
 				output = buildPath(output, DEFAULT_FILENAME);
@@ -588,7 +600,7 @@ struct Flags
 
 			assert(isValidPath(output));
 
-			import std.file;
+			import std.file : exists;
 			if (exists(output)) {
 				stderr.writefln("File '%s' already exists. Skipping.", output);
 				exit(1);
@@ -601,7 +613,7 @@ struct Flags
 
 	void printUsage()
 	{
-		import std.traits;
+		import std.traits : EnumMembers;
 		import std.stdio : writeln;
 		import std.algorithm : map, joiner;
 		import std.conv : to;
