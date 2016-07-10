@@ -24,8 +24,8 @@
  *   ---
  *   import dtest;
  *
- *   auto filteredModules = filterModules!((m) => withUnittests(m))(modules);
- *   auto results = testModules(filteredModules);
+ *   auto filteredModules = modules.filterModules!(m => m.withUnittests())();
+ *   auto results = filteredModules.testModules();
  *   registerFormatter("console", &consoleFormatter);
  *   formatResults(results);
  *   ---
@@ -82,7 +82,7 @@ bool withUnittests(ModuleInfo* m)
 auto testModules(ModuleInfo*[] modules)
 {
 	import std.algorithm : map;
-	return map!((m) => executeUnittests(m))(modules);
+	return modules.map!(m => m.executeUnittests());
 }
 
 /// Execute unittests for given module.
@@ -189,8 +189,8 @@ void consoleFormatter(TestResult[] results)
 			console.formattedWrite("\n");
 
 			import std.range : chain;
-			foreach (t; chain(failures, errors))
-				console.formattedWrite(formatThrowable(t));
+			foreach (t; failures.chain(errors))
+				console.formattedWrite(t.formatThrowable());
 		}
 	}
 }
@@ -200,7 +200,7 @@ string formatThrowable(Throwable t)
 {
 	import std.string : format;
 	return format("%s@%s(%s): %s\n", t.classinfo.name, t.file, t.line, t.msg) ~
-	       (t.next !is null ? "  " ~ formatThrowable(t.next) : "") ~
+	       (t.next !is null ? "  " ~ t.next.formatThrowable() : "") ~
 		   (_flags.backtrace ? formatBacktrace(t) : "");
 }
 
@@ -239,14 +239,14 @@ void xmlFormatter(TestResult[] results)
 	import std.socket : Socket;
 	b.tag.attr["hostname"] = Socket.hostName();
 	import std.conv : to;
-	b.tag.attr["tests"] = to!string(results.length);
+	b.tag.attr["tests"] = results.length.to!string;
 	import std.algorithm : count;
 	import std.array : empty;
-	b.tag.attr["failures"] = to!string(results.count!((r) => !r.failures.empty)());
-	b.tag.attr["errors"] = to!string(results.count!((r) => !r.errors.empty)());
+	b.tag.attr["failures"] = results.count!(r => !r.failures.empty)().to!string;
+	b.tag.attr["errors"] = results.count!(r => !r.errors.empty)().to!string;
 	import std.algorithm : reduce;
-	b.tag.attr["time"] = to!string(reduce!((a, b) => a + b.executionTime)
-	                                 (typeof(TestResult.executionTime).init, results).msecs);
+	b.tag.attr["time"] = reduce!((a, b) => a + b.executionTime)
+	                            (typeof(TestResult.executionTime).init, results).msecs.to!string;
 
 	a.items ~= b;
 	b ~= new Element("properties");
@@ -262,11 +262,11 @@ void xmlFormatter(TestResult[] results)
 			e.tag.attr["classname"] = "";
 			e.tag.attr["name"] = moduleInfo.name;
 			import std.conv : to;
-			e.tag.attr["time"] = to!string(executionTime.msecs);
+			e.tag.attr["time"] = executionTime.msecs.to!string;
 			foreach (t; failures)
-				e ~= new Element("failure", formatThrowable(t));
+				e ~= new Element("failure", t.formatThrowable());
 			foreach (t; errors)
-				e ~= new Element("error", formatThrowable(t));
+				e ~= new Element("error", t.formatThrowable());
 		}
 	}
 	import std.algorithm : copy, joiner;
@@ -343,8 +343,8 @@ bool includeExcludeModule(ModuleInfo* m)
 	import std.regex : regex, match;
 	import std.range : empty;
 	// exclude wins over include
-	return (!_flags.include || _flags.include.any!((f) => m.name.match(regex(f)))())
-	       && (!_flags.exclude || _flags.exclude.find!((f) => m.name.match(regex(f)))().empty);
+	return (!_flags.include || _flags.include.any!(f => m.name.match(regex(f)))())
+	       && (!_flags.exclude || _flags.exclude.find!(f => m.name.match(regex(f)))().empty);
 }
 
 version(dtest_unittest)
@@ -358,7 +358,7 @@ int main(string[] args)
 	auto console = consoleFile.lockingTextWriter();
 
 	auto filteredModules =
-	  filterModules!((m) => withUnittests(m) && includeExcludeModule(m))(modules);
+	  modules.filterModules!(m => m.withUnittests() && m.includeExcludeModule());
 
 	import std.format : formattedWrite;
 	import std.range : empty;
@@ -385,7 +385,7 @@ int main(string[] args)
 	}
 
 	import std.conv : to;
-	auto numberLength = to!int(to!string(_flags.repeatCount).length);
+	auto numberLength = _flags.repeatCount.to!string.length.to!uint;
 
 	import std.array : appender;
 	auto failedModules = appender!(string[])();
@@ -393,18 +393,18 @@ int main(string[] args)
 	{
 		console.formattedWrite("====== Run %*s of %*s ======\n",
 		                      numberLength, i + 1, numberLength, _flags.repeatCount);
-		if (_flags.shuffle) randomShuffle(filteredModules, rnd);
+		if (_flags.shuffle) filteredModules.randomShuffle(rnd);
 
 		// execute unittests
 		TestResult[] results;
 		results.length = filteredModules.length;
 		import std.algorithm : copy;
-		testModules(filteredModules).copy(results);
+		filteredModules.testModules().copy(results);
 
 		import std.algorithm : filter, map;
 		// remember failed modules
-		failedModules.put(results.filter!((r) => r.failed)()
-		                  .map!((r) => r.moduleInfo.name)());
+		failedModules.put(results.filter!(r => r.failed)()
+		                  .map!(r => r.moduleInfo.name)());
 
 		formatResults(results);
 	}
@@ -412,7 +412,7 @@ int main(string[] args)
 	import std.range : repeat;
 	import std.algorithm : joiner;
 	console.formattedWrite("======%s======\n",
-	                      repeat("=", 10 + 2 * numberLength).joiner());
+	                      "=".repeat(10 + 2 * numberLength).joiner());
 
 	if (!failedModules.data.empty)
 	{
@@ -421,12 +421,12 @@ int main(string[] args)
 		import std.algorithm : count;
 		assert(failed.count() <= filteredModules.length);
 		console.formattedWrite("Failed modules (%s of %s): %s\n",
-		          failed.count(), filteredModules.length, to!string(failed));
+		          failed.count(), filteredModules.length, failed.to!string());
 		return 2;
 	}
 
 	console.formattedWrite("All modules passed: %s\n",
-	                       filteredModules.map!((m) => m.name)());
+	                       filteredModules.map!(m => m.name)());
 
 	return 0;
 }
@@ -556,7 +556,7 @@ struct Flags
 			       "exclude",     &exclude,
 			       "repeat",      &repeatCount,
 			       "shuffle",     &shuffle,
-			       "seed",        (string option, string value) { seed = parse!(typeof(seed.get()))(value); },
+			       "seed",        (string option, string value) { seed = value.parse!(typeof(seed.get())); },
 			       "color",       &color,
 			       "backtrace",   &backtrace,
 			       "abort",       &this.abort,
@@ -593,7 +593,7 @@ struct Flags
 			output = output.length <= "xml:".length ? DEFAULT_FILENAME : output[4 .. $];
 
 			import std.path : isValidFilename, isValidPath, isDirSeparator, buildPath;
-			if (!isValidFilename(output) && !isValidPath(output) || isDirSeparator(output[$ - 1]))
+			if (!output.isValidFilename() && !output.isValidPath() || output[$ - 1].isDirSeparator())
 			{
 				output = buildPath(output, DEFAULT_FILENAME);
 			}
@@ -630,10 +630,10 @@ struct Flags
 		        "  --backtrace                         Add backtrace to console output.\n"
 		        "  --time                              Print running time per module.\n"
 		        "  --output=xml[:file|:directory]      Output results in XML to given file/directory.\n"
-		        "  --abort=", to!string(map!(to!string)([EnumMembers!Abort]).joiner("|")),
+		        "  --abort=", [EnumMembers!Abort].map!(to!string).joiner("|"),
 		        "  Abort executing a module. Defaults to ", to!string(Abort.init) , ".\n"
-		        "  --break=", to!string(map!(to!string)([EnumMembers!Break]).joiner("|")),
-		        "  Break when executing a module. Defaults to ", to!string(Break.init), ".\n"
+		        "  --break=", [EnumMembers!Break].map!(to!string).joiner("|"),
+		        "  Break when executing a module. Defaults to ", Break.init.to!string(), ".\n"
 		        "  --color                             Use colored output. Defaults to automatic.\n"
 		        "  --quiet                             Quiet. No output to console.\n"
 		        "  --version                           Print the version.\n"
@@ -646,7 +646,7 @@ struct Flags
 		import std.path : baseName;
 		import std.stdio : writeln;
 		import core.runtime : Runtime;
-		writeln(baseName(Runtime.args[0]), " v", VERSION);
+		writeln(Runtime.args[0].baseName, " v", VERSION);
 	}
 
 	private:
