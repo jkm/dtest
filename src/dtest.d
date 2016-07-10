@@ -217,16 +217,13 @@ string formatBacktrace(Throwable t)
 	return result;
 }
 
-// due to BUG 8586
-// import must be here
-import std.xml;
-import std.socket;
 /// $(ANCHOR xmlFormatterAnchor)
 /// Formats XML output. The format is compatible with Apache Ant's (1.8.2) JUnit
 /// task and JUnitReport task
 /// (see $(LINK_TEXT http://windyroad.org/dl/Open%20Source/JUnit.xsd, JUnit.xsd)).
 void xmlFormatter(TestResult[] results)
 {
+	import std.xml : Element;
 	auto a = new Element("testsuites");
 	auto b = new Element("testsuite");
 	b.tag.attr["id"] = "0";
@@ -241,6 +238,7 @@ void xmlFormatter(TestResult[] results)
 	else
 		time.fracSecs = Duration.zero();
 	b.tag.attr["timestamp"] = time.toISOExtString();
+	import std.socket : Socket;
 	b.tag.attr["hostname"] = Socket.hostName();
 	import std.conv : to;
 	b.tag.attr["tests"] = to!string(results.length);
@@ -345,9 +343,6 @@ unittest
 {
 }
 
-// due to BUG 8586
-// import must be here
-import std.random;
 int main(string[] args)
 {
 	initTesting(args);
@@ -368,6 +363,7 @@ int main(string[] args)
 	// list module only
 	if (_flags.list) return 0;
 
+	import std.random : Random, unpredictableSeed, randomShuffle;
 	Random rnd;
 	if (_flags.shuffle)
 	{
@@ -443,6 +439,7 @@ version(Posix)
 	}
 	else static assert(false, "unable to wrap _d_throw");
 
+	import std.string : format;
 	mixin(format(q{
 	extern(C) void %s(Object* h)
 	{
@@ -518,9 +515,6 @@ struct Flags
 		     DEFAULT_XML = null,
 	     }
 
-	// due to BUG 8586
-	// import must be here
-	import std.getopt;
 	this(ref string[] args)
 	{
 		repeatCount = DEFAULT_REPEAT_COUNT;
@@ -532,6 +526,7 @@ struct Flags
 		quiet = DEFAULT_QUIET;
 
 		import core.stdc.stdlib;
+		import std.getopt : getopt;
 		try getopt(args,
 			       "list",        &list,
 			       "include",     &include,
@@ -620,11 +615,9 @@ struct Flags
 			   );
 	}
 
-	// due to BUG 8586
-	// import must be here
-	import std.path;
 	void printVersion()
 	{
+		import std.path : baseName;
 		writeln(baseName(Runtime.args[0]), " v", VERSION);
 	}
 
