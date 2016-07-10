@@ -24,7 +24,7 @@
  *   ---
  *   import dtest;
  *
- *   auto filteredModules = modules.filterModules!(m => m.withUnittests())();
+ *   auto filteredModules = modules.filterModules!(m => m.hasUnittests())();
  *   auto results = filteredModules.testModules();
  *   registerFormatter("console", &consoleFormatter);
  *   formatResults(results);
@@ -72,7 +72,7 @@ ModuleInfo*[] filterModules(alias pred)(ModuleInfo*[] modules)
 }
 
 /// Returns: true iff ModuleInfo defines unittests.
-bool withUnittests(ModuleInfo* m)
+bool hasUnittests(ModuleInfo* m)
 {
 	return m.unitTest != null;
 }
@@ -358,7 +358,7 @@ int main(string[] args)
 	auto console = consoleFile.lockingTextWriter();
 
 	auto filteredModules =
-	  modules.filterModules!(m => m.withUnittests() && m.includeExcludeModule());
+	  modules.filterModules!(m => m.hasUnittests() && m.includeExcludeModule());
 
 	import std.format : formattedWrite;
 	import std.range : empty;
