@@ -64,7 +64,6 @@ import std.format;
 import std.array;
 
 /// Returns: an array of ModuleInfo* for known modules.
-@property
 ModuleInfo*[] modules()
 {
 	auto app = appender!(ModuleInfo*[])();
@@ -157,7 +156,6 @@ struct TestResult
 	}
 
 	/// Returns: true, iff there are failures or errors.
-	@property
 	bool failed() nothrow pure { return !failures.empty || !errors.empty; }
 }
 
