@@ -53,16 +53,6 @@
 module dtest;
 enum VERSION = 0.1;
 
-import core.runtime;
-import core.exception;
-
-import std.algorithm;
-import std.stdio;
-import std.conv;
-import std.regex;
-import std.format;
-import std.array;
-
 /// Returns: an array of ModuleInfo* for known modules.
 ModuleInfo*[] modules()
 {
@@ -74,6 +64,7 @@ ModuleInfo*[] modules()
 /// Returns: a subset of the given modules by applying pred as a filter.
 ModuleInfo*[] filterModules(alias pred)(ModuleInfo*[] modules)
 {
+	import std.algorithm : filter;
 	auto filteredModules = modules.filter!pred().array();
 	return filteredModules;
 }
@@ -89,6 +80,7 @@ bool withUnittests(ModuleInfo* m)
 /// lazy.
 auto testModules(ModuleInfo*[] modules)
 {
+	import std.algorithm : map;
 	return map!((m) => executeUnittests(m))(modules);
 }
 
@@ -134,13 +126,14 @@ body
 /// Stores the test results for a single module.
 struct TestResult
 {
-	import core.time;
 	/// ModuleInfo of the tested module
 	ModuleInfo* moduleInfo;
 	/// all (assert) failures
+	import core.exception : AssertError;
 	AssertError[] failures;
 	/// all other errors (like unhandled exceptions)
 	Throwable[] errors;
+	import core.time : TickDuration;
 	/// duration to execute the tests
 	TickDuration executionTime;
 
@@ -184,6 +177,7 @@ void consoleFormatter(TestResult[] results)
 		with(res)
 		{
 			enum Messages = ["FAIL", "PASS"];
+			import std.format : formattedWrite;
 			console.formattedWrite("%s %s", Messages[!failed], moduleInfo.name);
 			if (_flags.printTime)
 				console.formattedWrite(" (took %s ms)", executionTime.msecs);
@@ -240,8 +234,10 @@ void xmlFormatter(TestResult[] results)
 	b.tag.attr["hostname"] = Socket.hostName();
 	import std.conv : to;
 	b.tag.attr["tests"] = to!string(results.length);
+	import std.algorithm : count;
 	b.tag.attr["failures"] = to!string(results.count!((r) => !r.failures.empty)());
 	b.tag.attr["errors"] = to!string(results.count!((r) => !r.errors.empty)());
+	import std.algorithm : reduce;
 	b.tag.attr["time"] = to!string(reduce!((a, b) => a + b.executionTime)
 	                                 (typeof(TestResult.executionTime).init, results).msecs);
 
@@ -266,7 +262,7 @@ void xmlFormatter(TestResult[] results)
 				e ~= new Element("error", formatThrowable(t));
 		}
 	}
-	import std.algorithm : copy;
+	import std.algorithm : copy, joiner;
 	a.pretty(4).joiner("\n").copy(File(_flags.output, "w").lockingTextWriter());
 }
 
@@ -288,6 +284,7 @@ void disableRuntimeModuleUnitTester()
 	{
 		return true;
 	}
+	import core.runtime : Runtime;
 	Runtime.moduleUnitTester = &nullModuleUnitTester;
 }
 
@@ -300,16 +297,19 @@ static this()
 
 static this()
 {
+	import std.stdio : stdout;
 	consoleFile = stdout;
 }
 
 Formatter[string] formatter; // hash of formatters
+import std.stdio : File;
 File consoleFile; // console output is sent here
 
 /// Initialize testing
 void initTesting(ref string[] args)
 {
 	_flags = Flags(args);
+	import core.exception : assertHandler;
 	assertHandler = &myAssertHandler;
 
 	// register predefined formatters
@@ -331,6 +331,8 @@ void initTesting(ref string[] args)
 /// excluded.
 bool includeExcludeModule(ModuleInfo* m)
 {
+	import std.algorithm : any, find;
+	import std.regex : regex, match;
 	// exclude wins over include
 	return (!_flags.include || _flags.include.any!((f) => m.name.match(regex(f)))())
 	       && (!_flags.exclude || _flags.exclude.find!((f) => m.name.match(regex(f)))().empty);
@@ -349,12 +351,14 @@ int main(string[] args)
 	auto filteredModules =
 	  filterModules!((m) => withUnittests(m) && includeExcludeModule(m))(modules);
 
+	import std.format : formattedWrite;
 	if (filteredModules.empty)
 	{
 		console.formattedWrite("No modules to test.\n");
 		return 0;
 	}
 
+	import std.algorithm : map;
 	console.formattedWrite("Testing %s modules: %s\n", filteredModules.length,
 	                      filteredModules.map!((m) => m.name)());
 
@@ -370,6 +374,7 @@ int main(string[] args)
 		rnd = Random(seed);
 	}
 
+	import std.conv : to;
 	auto numberLength = to!int(to!string(_flags.repeatCount).length);
 
 	auto failedModules = appender!(string[])();
@@ -382,8 +387,10 @@ int main(string[] args)
 		// execute unittests
 		TestResult[] results;
 		results.length = filteredModules.length;
+		import std.algorithm : copy;
 		testModules(filteredModules).copy(results);
 
+		import std.algorithm : filter, map;
 		// remember failed modules
 		failedModules.put(results.filter!((r) => r.failed)()
 		                  .map!((r) => r.moduleInfo.name)());
@@ -391,12 +398,15 @@ int main(string[] args)
 		formatResults(results);
 	}
 
+	import std.algorithm : joiner;
 	console.formattedWrite("======%s======\n",
 	                      std.range.repeat("=", 10 + 2 * numberLength).joiner());
 
 	if (!failedModules.data.empty)
 	{
+		import std.algorithm : sort, uniq;
 		auto failed = failedModules.data.sort().uniq();
+		import std.algorithm : count;
 		assert(failed.count() <= filteredModules.length);
 		console.formattedWrite("Failed modules (%s of %s): %s\n",
 		          failed.count(), filteredModules.length, to!string(failed));
@@ -411,6 +421,7 @@ int main(string[] args)
 
 enum NOT_IMPLEMENTED = "Not implemented for your OS. Please report.";
 
+import core.exception : AssertError;
 AssertError[] failures;
 Throwable[] errors;
 
@@ -523,8 +534,10 @@ struct Flags
 		printTime = DEFAULT_PRINT_TIME;
 		quiet = DEFAULT_QUIET;
 
+		import std.stdio : stderr;
 		import core.stdc.stdlib;
 		import std.getopt : getopt;
+		import std.conv : parse;
 		try getopt(args,
 			       "list",        &list,
 			       "include",     &include,
@@ -589,6 +602,9 @@ struct Flags
 	void printUsage()
 	{
 		import std.traits;
+		import std.stdio : writeln;
+		import std.algorithm : map, joiner;
+		import std.conv : to;
 		writeln("Usage: dtest [options]\n"
 		        "Options:\n"
 		        "  --list                              List tested modules names only.\n"
@@ -616,6 +632,8 @@ struct Flags
 	void printVersion()
 	{
 		import std.path : baseName;
+		import std.stdio : writeln;
+		import core.runtime : Runtime;
 		writeln(baseName(Runtime.args[0]), " v", VERSION);
 	}
 
