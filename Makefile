@@ -50,7 +50,11 @@ endif
 all: build
 
 .PHONY: build
-build: $(STATIC_LIBRARY) $(STATIC_LIBRARY).dbg $(EXAMPLE) $(EXAMPLE).dbg
+# BUG
+# temporary fix to build with gdc
+# gdc cannot build statically
+#build: $(STATIC_LIBRARY) $(STATIC_LIBRARY).dbg $(EXAMPLE) $(EXAMPLE).dbg
+build: $(EXAMPLE) $(EXAMPLE).dbg
 
 $(SHARED_LIBRARY): DCFLAGS += $(DC_FPIC_FLAG)
 $(SHARED_LIBRARY): $(OBJECTS)
@@ -162,20 +166,20 @@ download: download_$(DC)
 
 .PHONY: download_dmd
 download_dmd:
-	wget http://downloads.dlang.org/releases/2014/dmd_2.065.0-0_amd64.deb
-	sudo dpkg -i dmd_2.065.0-0_amd64.deb
+	wget -c http://downloads.dlang.org/releases/2016/dmd_2.071.0-0_amd64.deb
+	sudo dpkg -i dmd_2.071.0-0_amd64.deb
 
 .PHONY: download_gdc
 download_gdc:
-	wget http://gdcproject.org/downloads/binaries/x86_64-linux-gnu/native_2.065_gcc4.9.0_a8ad6a6678_20140615.tar.xz
-	tar xf native_2.065_gcc4.9.0_a8ad6a6678_20140615.tar.xz
-	@echo "Update your PATH via export PATH=\$$PATH:\$$PWD/x86_64-gdcproject-linux-gnu/bin"
+	wget -c http://gdcproject.org/downloads/binaries/5.2.0/x86_64-linux-gnu/gdc-5.2.0+2.066.1.tar.xz
+	tar xf gdc-5.2.0+2.066.1.tar.xz
+	@echo "Update your PATH via export PATH=\$$PATH:\$$PWD/x86_64-pc-linux-gnu/bin"
 
 .PHONY: download_ldc2
 download_ldc2:
-	wget https://github.com/ldc-developers/ldc/releases/download/v0.13.0/ldc2-0.13.0-linux-x86_64.tar.xz
-	tar xf ldc2-0.13.0-linux-x86_64.tar.xz
-	@echo "Update your PATH via export PATH=\$$PATH:\$$PWD/ldc2-0.13.0-linux-x86_64/bin"
+	wget -c https://github.com/ldc-developers/ldc/releases/download/v1.0.0/ldc2-1.0.0-linux-x86_64.tar.xz
+	tar xf ldc2-1.0.0-linux-x86_64.tar.xz
+	@echo "Update your PATH via export PATH=\$$PATH:\$$PWD/ldc2-1.0.0-linux-x86_64/bin"
 
 .PHONY: clean
 clean:

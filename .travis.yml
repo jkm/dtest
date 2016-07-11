@@ -8,10 +8,10 @@ before_install:
        dmd)
          ;;
        gdc)
-         export PATH=$PATH:$PWD/x86_64-gdcproject-linux-gnu/bin;
+         export PATH=$PATH:$PWD/x86_64-pc-linux-gnu/bin;
          ;;
        ldc2)
-         export PATH=$PATH:$PWD/ldc2-0.13.0-linux-x86_64/bin;
+         export PATH=$PATH:$PWD/ldc2-1.0.0-linux-x86_64/bin;
          ;;
      esac
 

@@ -234,8 +234,12 @@ void xmlFormatter(TestResult[] results)
 	b.tag.attr["name"] = "some";
 	import std.datetime : Clock;
 	auto time = Clock.currTime();
-	import core.time : Duration;
-	time.fracSecs = Duration.zero();
+	import core.time : FracSec, Duration;
+	import std.compiler : version_minor;
+	static if (version_minor < 67)
+		time.fracSec = FracSec.zero();
+	else
+		time.fracSecs = Duration.zero();
 	b.tag.attr["timestamp"] = time.toISOExtString();
 	b.tag.attr["hostname"] = Socket.hostName();
 	import std.conv : to;
@@ -258,6 +262,7 @@ void xmlFormatter(TestResult[] results)
 		{
 			e.tag.attr["classname"] = "";
 			e.tag.attr["name"] = moduleInfo.name;
+			import std.conv : to;
 			e.tag.attr["time"] = to!string(executionTime.msecs);
 			foreach (t; failures)
 				e ~= new Element("failure", formatThrowable(t));
@@ -430,7 +435,7 @@ version(Posix)
 		alias dThrow = __real__d_throw;
 		enum funcName = "__wrap__d_throw";
 	}
-	else version(LLVM)
+	else version(LDC)
 	{
 		extern extern(C) void __real__d_throw_exception(Object* h);
 		alias dThrow = __real__d_throw_exception;
