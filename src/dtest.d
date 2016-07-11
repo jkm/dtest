@@ -263,10 +263,11 @@ void xmlFormatter(TestResult[] results)
 			e.tag.attr["name"] = moduleInfo.name;
 			import std.conv : to;
 			e.tag.attr["time"] = executionTime.msecs.to!string;
+			import std.string : chomp;
 			foreach (t; failures)
-				e ~= new Element("failure", t.formatThrowable());
+				e ~= new Element("failure", t.formatThrowable().chomp());
 			foreach (t; errors)
-				e ~= new Element("error", t.formatThrowable());
+				e ~= new Element("error", t.formatThrowable().chomp());
 		}
 	}
 	import std.algorithm : copy, joiner;
